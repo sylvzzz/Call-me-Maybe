@@ -37,5 +37,17 @@
     "returns": {
     "type": "string"
     }
+    },
+    {
+    "name": "fn_accuse_vibecoder",
+    "description": "Accuse the person of vibecoding.",
+    "parameters": {
+    "person": {
+    "type": "string"
+    }
+    },
+    "returns": {
+    "type": "string"
+    }
     }
 ]

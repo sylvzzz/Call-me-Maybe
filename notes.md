@@ -1,7 +1,8 @@
-What is an LLM doing, really?
+# What is an LLM doing, really?
 An LLM is basically a next-word guesser. That's it. You give it some text, it guesses what comes next.
 But computers don't understand text, so everything gets converted to numbers first.
 
+<pre>
 The full journey, simply
 "What is 2 + 3?"
        ↓
@@ -21,6 +22,7 @@ The full journey, simply
    PICK HIGHEST SCORE → token_42 = "5"
        ↓
    APPEND "5" TO INPUT, REPEAT...
+  </pre>
 
 The model repeats this loop, one token at a time, until it generates an EOS token (end of sentence — its way of saying "I'm done").
 
@@ -56,16 +58,16 @@ pythonmodel = Small_LLM_Model()
 
 # Step 1: convert your prompt to token IDs
 input_ids = model.encode("What is 2 + 3?").tolist()[0]
-# → [892, 318, 17, 10, 18, 30]
+→ [892, 318, 17, 10, 18, 30]
 
-# Step 2: get scores for every possible next token
+ Step 2: get scores for every possible next token
 logits = model.get_logits_from_input_ids(input_ids)
-# → [0.1, -2.3, 8.7, ...] (one score per vocab token)
+ → [0.1, -2.3, 8.7, ...] (one score per vocab token)
 
-# Step 3: pick the best token
+Step 3: pick the best token
 next_id = logits.index(max(logits))
 
-# Step 4: add it to input and repeat
+Step 4: add it to input and repeat
 input_ids.append(next_id)
 For constrained decoding, you'd modify the logits between steps 2 and 3 — zeroing out anything that would break your JSON schema.
 

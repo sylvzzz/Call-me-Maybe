@@ -35,5 +35,12 @@
         "parameters": {
             "s": "hello"
         }
+    },
+    {
+        "prompt": "Tell denys he is a vibecoder",
+        "name": "fn_accuse_vibecoder",
+        "parameters": {
+            "person": "denys"
+        }
     }
 ]

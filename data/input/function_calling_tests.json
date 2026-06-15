@@ -13,5 +13,8 @@
     },
     {
     "prompt": "Reverse the string 'hello'"
+    },
+    {
+    "prompt": "Tell denys he is a vibecoder"
     }
 ]
