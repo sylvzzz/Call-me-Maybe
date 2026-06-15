@@ -1,14 +1,17 @@
-MAIN	= main.py
-VENV := virtual_env
-PIP := $(VENV)/bin/pip
-
+FOLDER := $(shell pwd)
+MAIN = main.py
+VENV = $(FOLDER)/test_env
+REQ = requirements.txt
+PY = $(VENV)/bin/python
 
 install:
-	python3 -m venv $(VENV)
-	$(PIP) install -r requirements.txt
+	uv venv $(VENV)
+	uv pip install -r $(REQ) --python $(PY)
+	unzip llm_sdk.zip
+	uv pip install ./llm_sdk --python $(PY)
 
 run:
-	python3 $(MAIN)
+	$(PY) $(MAIN)
 
 debug:
 	python3 -m pdb $(MAIN)
