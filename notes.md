@@ -130,3 +130,55 @@ What it needs to do
 5. Pick the best remaining token
 6. Add it to the input
 7. Repeat until we have complete valid JSON
+
+Normal generation: the LLM scores every token in its vocab (100k+), picks the highest score, adds it to the input, repeats.
+Constrained decoding: you block tokens that would break your desired structure before picking one. You're generating JSON and just wrote { — only keys/strings are valid next, so you set every other token's score to -infinity. The model can only pick from the valid ones.
+This guarantees 100% valid JSON output regardless of model size — no broken brackets, wrong types, or hallucinated keys. The Qwen3-0.6B might only produce valid JSON 30% of the time from prompting alone; constrained decoding pushes that to ~100%.
+
+
+# Trie
+
+A Trie, also known as a prefix tree, is a tree-like data structure used for storing a dynamic set of strings. It is commonly used for efficient retrieval and storage of keys in a large dataset. The structure supports operations such as insertion, search, and deletion of keys, making it a valuable tool in fields like computer science and information retrieval.
+
+<pre>
+                root
+                  |
+                [8822] -- fn
+                /   |      |
+            [2891] [1889] [43277]
+            _add    _g    _reverse
+            |       |
+        [32964]   [3744]
+        _numbers   reet
+</pre>
+
+# Constrained Decoding
+
+1. Fixed text (like {"name": ") — force the exact tokens
+2. A choice from a trie (like the function name) — traverse the trie, only allow its children
+The loop:
+1. Encode the prompt → input_ids
+2. For each segment:
+   - If fixed text: encode it, force each token one by one
+   - If a choice (trie): start at root, at each step:
+       a. Get logits from model
+       b. Find current node in trie
+       c. Zero out all logits except keys of current node
+       d. Pick the best remaining token
+       e. Move to that child in trie
+       f. Repeat until hitting "END"
+3. Return the generated text
+After the function name, you'd have another fixed segment ", "parameters": { then another choice segment for the parameters, then }.
+
+The generation loop is just two modes:
+Mode A — "Force this exact string"
+You pick each token. No choice. Just shove it in.
+Mode B — "Choose from this list"
+Model picks. You just filter.
+The whole JSON is just a sequence of Mode A and Mode B:
+{"name": "  →  Mode A (force exact tokens)
+fn_...          →  Mode B (model chooses function)
+", "parameters": {  →  Mode A
+param values       →  Mode B (model chooses args)
+}                 →  Mode A
+The loop walks through this plan top to bottom. That's it.

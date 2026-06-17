@@ -1,6 +1,6 @@
 FOLDER := $(shell pwd)
 MAIN = main.py
-VENV = $(FOLDER)/test_env
+VENV = $(FOLDER)/.venv
 REQ = requirements.txt
 PY = $(VENV)/bin/python
 
@@ -11,7 +11,7 @@ install:
 	uv pip install ./llm_sdk --python $(PY)
 
 run:
-	$(PY) $(MAIN)
+	uv run $(PY) -m src
 
 debug:
 	python3 -m pdb $(MAIN)

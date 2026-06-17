@@ -1,7 +1,5 @@
-from llm_sdk.llm_sdk import Small_LLM_Model
+from llm_sdk import Small_LLM_Model
 import json
-
-model = Small_LLM_Model()
 
 def build_prompt(user_request: str, functions: list) -> str:
     functions_text = ""
@@ -13,14 +11,14 @@ def build_prompt(user_request: str, functions: list) -> str:
         functions_text += f"- {fn['name']}({params})\n"
 
     return f"""You are a function calling assistant.
-Given a user request, output ONLY a valid JSON object with exactly these keys:
-- "name": the function to call
-- "parameters": the arguments with correct types
+    Given a user request, output ONLY a valid JSON object with exactly these keys:
+    - "name": the function to call
+    - "parameters": the arguments with correct types
 
-Available functions:
-{functions_text}
-User request: {user_request}
-Output:"""
+    Available functions:
+    {functions_text}
+    User request: {user_request}
+    Output:"""
 
 
 """
@@ -64,27 +62,46 @@ def generate(model: Small_LLM_Model, prompt: str) -> str:
 
 
 def main() -> None:
-    with open("data/input/functions_definition.json") as f:
-        functions = json.load(f)
+    import os
 
-    with open("data/input/function_calling_tests.json") as f:
-        tests = json.load(f)
 
-    results = []
-    for test in tests:
-        prompt = test["prompt"]
-        llm_prompt = build_prompt(prompt, functions)
+    try:
+        defs = "data/input/functions_definition.json"
+        tests = "data/input/function_calling_tests.json"
+        results = "data/output/function_calling_results.json"
+
+        with open(defs) as f:
+            functions = json.load(f)
+
+        with open(tests) as f:
+            tests = json.load(f)
         
-        output_json = json.loads(generate(model, llm_prompt))  # parse string → dict
-        
-        results.append({
-            "prompt": prompt,
-            "name": output_json["name"],
-            "parameters": output_json["parameters"]
-        })
+        os.makedirs("output", exist_ok=True)
 
-    with open("data/output/function_calling_results.json", "w") as f:
-        json.dump(results, f, indent=4)
+        model = Small_LLM_Model()
+        results = []
+        for test in tests:
+            prompt = test["prompt"]
+            llm_prompt = build_prompt(prompt, functions)
+            
+            # parse string to dict
+            output_json = json.loads(generate(model, llm_prompt))
+            
+            results.append({
+                "prompt": prompt,
+                "name": output_json["name"],
+                "parameters": output_json["parameters"]
+            })
+
+        with open(results, "w") as f:
+            json.dump(results, f, indent=4)
+    except FileNotFoundError as error:
+        print("\033[31m" + f"File {error.filename} not found ..."
+               + "\033[0m")
+    except IsADirectoryError as error:
+        print("\033[31m" + f"File {error.filename} cannot be a directory ..."
+               + "\033[0m")
 
 if __name__ == "__main__":
+    import sys
     main()
