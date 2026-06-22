@@ -1,107 +1,51 @@
-from llm_sdk import Small_LLM_Model
 import json
+from llm_sdk import Small_LLM_Model
+from src import load_llm_vocab, is_allowed_char, is_allowed_token, build_trie, select_from_trie
 
-def build_prompt(user_request: str, functions: list) -> str:
-    functions_text = ""
-    for fn in functions:
-        params = ", ".join(
-            f"{name}: {info['type']}" 
-            for name, info in fn["parameters"].items()
-        )
-        functions_text += f"- {fn['name']}({params})\n"
+with open("/home/dbotelho/.cache/huggingface/hub/models--Qwen--Qwen3-0.6B/snapshots/c1899de289a04d12100db370d81485cdf75e47ca/vocab.json") as f:
+    vocab = json.load(f)
 
-    return f"""You are a function calling assistant.
-    Given a user request, output ONLY a valid JSON object with exactly these keys:
-    - "name": the function to call
-    - "parameters": the arguments with correct types
+def main(model: Small_LLM_Model) -> None:
+    prompt = "What is the sum of 2 and 3?"
+    input_ids = model.encode(prompt)
+    print(type(input_ids), input_ids)
 
-    Available functions:
-    {functions_text}
-    User request: {user_request}
-    Output:"""
+    ids_list = input_ids.tolist()[0]
+    print(ids_list)
 
+    logits = model.get_logits_from_input_ids(ids_list)
+    print(type(logits))
+    print(len(logits))
+    print(logits[:10])
+    qid = model.encode('"').tolist()[0]
+    print(qid)
 
-"""
-def generate_debugging(model: Small_LLM_Model, prompt: str) -> str:
-    input_ids = model.encode(prompt).tolist()[0]  # full context
-    generated_ids = []                             # only generated tokens
+    # build a reverse lookup: token string -> token id, like your vocab dict already is
+    # but you want id -> string, so invert it
+    id_to_token = {v: k for k, v in vocab.items()}
 
-    for _ in range(200):
-        logits = model.get_logits_from_input_ids(input_ids)
-        next_id = logits.index(max(logits))
+    for token_id in qid:
+        print(token_id, repr(id_to_token.get(token_id)))
 
-        input_ids.append(next_id)      # grow the context
-        generated_ids.append(next_id)  # track what was generated
-
-        generated_text = model.decode(generated_ids)
-        print(generated_text)  # watch it generate
-
-        if generated_text.strip().endswith("}"):
-            break
-
-    return generated_text
-"""
-
-def generate(model: Small_LLM_Model, prompt: str) -> str:
-    input_ids = model.encode(prompt).tolist()[0]
-    generated_ids = []
-
-    for _ in range(200):
-        logits = model.get_logits_from_input_ids(input_ids)
-        next_id = logits.index(max(logits))
-
-        input_ids.append(next_id)
-        generated_ids.append(next_id)
-
-        generated_text = model.decode(generated_ids)
-
-        if generated_text.strip().endswith("}"):
-            break
-
-    return generated_text
-
-
-def main() -> None:
-    import os
-
-
-    try:
-        defs = "data/input/functions_definition.json"
-        tests = "data/input/function_calling_tests.json"
-        results = "data/output/function_calling_results.json"
-
-        with open(defs) as f:
-            functions = json.load(f)
-
-        with open(tests) as f:
-            tests = json.load(f)
-        
-        os.makedirs("output", exist_ok=True)
-
-        model = Small_LLM_Model()
-        results = []
-        for test in tests:
-            prompt = test["prompt"]
-            llm_prompt = build_prompt(prompt, functions)
-            
-            # parse string to dict
-            output_json = json.loads(generate(model, llm_prompt))
-            
-            results.append({
-                "prompt": prompt,
-                "name": output_json["name"],
-                "parameters": output_json["parameters"]
-            })
-
-        with open(results, "w") as f:
-            json.dump(results, f, indent=4)
-    except FileNotFoundError as error:
-        print("\033[31m" + f"File {error.filename} not found ..."
-               + "\033[0m")
-    except IsADirectoryError as error:
-        print("\033[31m" + f"File {error.filename} cannot be a directory ..."
-               + "\033[0m")
 
 if __name__ == "__main__":
-    import sys
-    main()
+    with open("data/input/functions_definition.json", "r") as file:
+        functions_data = json.load(file)
+
+    functions = [f.get("name") for f in functions_data]
+    model = Small_LLM_Model()
+    id_to_str = load_llm_vocab(vocab)
+
+    trie = build_trie(model, functions)
+
+    prompt = "What is the sum of 2 and 3?"
+    input_ids = model.encode(prompt).tolist()[0]
+
+    chosen_tokens = select_from_trie(model, trie, quote_token_id=1, input_ids=input_ids)
+    print(chosen_tokens)
+    print([id_to_str.get(t) for t in chosen_tokens])
+
+    prompt2 = "Greet shrek"
+    input_ids2 = model.encode(prompt2).tolist()[0]
+    chosen2 = select_from_trie(model, trie, quote_token_id=1, input_ids=input_ids2)
+    print([id_to_str.get(t) for t in chosen2])
