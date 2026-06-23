@@ -31,7 +31,7 @@ def generate_string_value(model, quote_token_id, input_ids_so_far, id_to_str):
 
     while True:
         logits = model.get_logits_from_input_ids(input_ids_so_far + generated_tokens)
-
+        
         best_token = max(legal_ids, key=lambda token_id: logits[token_id])
 
         if best_token == quote_token_id:
@@ -41,28 +41,58 @@ def generate_string_value(model, quote_token_id, input_ids_so_far, id_to_str):
 
     return generated_tokens
 
+def generate_number_value(model, input_ids_so_far, is_last_parameter):
 
-def main(model: Small_LLM_Model) -> None:
-    prompt = "What is the sum of 2 and 3?"
-    input_ids = model.encode(prompt)
-    print(type(input_ids), input_ids)
+    digit_ids = [model.encode(c).tolist()[0][0] for c in ["0","1","2","3","4","5","6","7","8","9"]]  # tokens for '0'-'9'
+    dot_id, comma_id, close_brace_id = [model.encode(c).tolist()[0][0] for c in [".",",","}"]]
 
-    ids_list = input_ids.tolist()[0]
-    print(ids_list)
+    generated_tokens =[]
+    used_dot = False
 
-    logits = model.get_logits_from_input_ids(ids_list)
-    print(type(logits))
-    print(len(logits))
-    print(logits[:10])
-    qid = model.encode('"').tolist()[0]
-    print(qid)
+    while True:
+        # build the allowed set for THIS step (can change each time!)
+        legal_ids = digit_ids[:]
 
-    # build a reverse lookup: token string -> token id, like our vocab dict already is
-    # but we want id -> string, so invert it
-    id_to_token = {v: k for k, v in vocab.items()}
+        if not used_dot:
+            legal_ids.append(dot_id)
 
-    for token_id in qid:
-        print(token_id, repr(id_to_token.get(token_id)))
+        # stop options — only allow the one that's actually valid here
+        if is_last_parameter:
+            legal_ids.append(close_brace_id)
+        else:
+            legal_ids.append(comma_id)
+
+        logits = model.get_logits_from_input_ids(input_ids_so_far + generated_tokens)
+
+        best_token = max(legal_ids, key=lambda token_id: logits[token_id])
+
+        if best_token == comma_id or best_token == close_brace_id:
+            break   # model chose to stop, number is done
+
+        if best_token == dot_id:
+            used_dot = True
+
+        generated_tokens.append(best_token)
+
+    return generated_tokens
+
+
+def main(model: Small_LLM_Model, vocab) -> None:
+    input_ids_so_far_a = model.encode(
+        'What is the sum of 2 and 3? {"name": "fn_add_numbers", "parameters": {"a": '
+    ).tolist()[0]
+
+    result = generate_number_value(model, input_ids_so_far_a, is_last_parameter=False)
+    print(result)
+    print([vocab[t] for t in result])
+
+    input_ids_so_far_b = model.encode(
+        'What is the sum of 2 and 3? {"name": "fn_add_numbers", "parameters": {"a": 2, "b": '
+    ).tolist()[0]
+
+    result = generate_number_value(model, input_ids_so_far_b, is_last_parameter=True)
+    print(result)
+    print([vocab[t] for t in result])
 
 
 if __name__ == "__main__":
@@ -72,11 +102,10 @@ if __name__ == "__main__":
     with open("/home/dbotelho/.cache/huggingface/hub/models--Qwen--Qwen3-0.6B/snapshots/c1899de289a04d12100db370d81485cdf75e47ca/vocab.json") as f:
         vocab = json.load(f)
 
-    load_llm_vocab(vocab)
-
     functions = [f.get("name") for f in functions_data]
     model = Small_LLM_Model()
-    id_to_str = load_llm_vocab(vocab)
+    vocab = load_llm_vocab(vocab)
+    main(model, vocab)
 
     """
     testing string value generation
