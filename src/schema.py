@@ -31,6 +31,7 @@ def generate_function_call(model, prompt_text, functions, trie, vocab):
     params = functions[function_id].get("parameters")  # dict: {"a": {"type": "number"}, "b": {...}}
     param_items = list(params.items())
 
+    parsed_params = {}
     for i, (param_name, param_info) in enumerate(param_items):
         is_last = (i == len(param_items) - 1)
 
@@ -40,6 +41,8 @@ def generate_function_call(model, prompt_text, functions, trie, vocab):
         if param_info["type"] == "number":
             value_tokens = generate_number_value(model, input_ids, is_last)
             input_ids.extend(value_tokens)
+            raw_value = model.decode(value_tokens)
+            parsed_params[param_name] = float(raw_value)
             # generator stopped on , or } but didn't emit it — skeleton must
 
         elif param_info["type"] == "string":
@@ -49,6 +52,7 @@ def generate_function_call(model, prompt_text, functions, trie, vocab):
                                                  quote_token_id=quote_token_id, vocab=vocab)
             input_ids.extend(value_tokens)
             input_ids.append(quote_token_id)   # closing quote, since generator only stopped ON it
+            parsed_params[param_name] = model.decode(value_tokens)
 
         # --- skeleton: separator between params, or close everything ---
         if not is_last:
@@ -56,4 +60,7 @@ def generate_function_call(model, prompt_text, functions, trie, vocab):
         else:
             input_ids.extend(model.encode("}}").tolist()[0])   # close parameters object + close outer object
 
-    return model.decode(input_ids)
+    return {
+        "name": function_name,
+        "parameters": parsed_params,
+    }

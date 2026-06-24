@@ -2,3 +2,4 @@ test_env
 .env
 llm_sdk
 hf_cache
+data/output

@@ -1,6 +1,7 @@
 import json
 from llm_sdk import Small_LLM_Model
 from src import load_llm_vocab, generate_function_call, build_trie
+import os
 
 
 def render_functions_block(functions_data):
@@ -42,9 +43,24 @@ if __name__ == "__main__":
     
     functions_block = render_functions_block(functions_data)
 
+    results = []
     for prompt in prompts:
         full_prompt = f"{functions_block}\n\nUser request: {prompt}\n"
-        main(model=model, prompt=full_prompt, trie=trie, functions=functions, vocab=vocab)
+        call_result = generate_function_call(model=model, prompt_text=full_prompt,
+                                            functions=functions, trie=trie, vocab=vocab)
+        results.append({
+            "prompt": prompt,
+            "name": call_result["name"],
+            "parameters": call_result["parameters"],
+        })
+
+    dir_path = "data/output"
+    output_file = "data/output/function_calls.json"
+
+    os.makedirs(dir_path, exist_ok=True)
+
+    with open(output_file, "w") as file:
+        json.dump(results, file, indent=2)
 
     """
     testing string value generation
