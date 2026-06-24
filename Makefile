@@ -21,6 +21,7 @@ clean:
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	find . -type d -name "build" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -exec rm -f {} +
+	find . -type d -name ".cache" -exec rm -rf {} +
 
 lint:
 	python3 -m flake8 . --exclude virtual_env

@@ -47,7 +47,7 @@ def select_from_trie(model, trie: dict, quote_token_id: int, input_ids: list[int
         model: the LLM SDK wrapper.
         trie: a trie built by build_trie, mapping token_id -> subtrie,
             with "END" marking complete strings.
-        quote_token_id: the token id for the closing '"' character —
+        quote_token_id: the token id for the closing '"' character
             used as the real, scoreable stand-in for "stop here".
         input_ids: the token ids generated so far (prompt + any prior
             generation), used as context for the next logits call.

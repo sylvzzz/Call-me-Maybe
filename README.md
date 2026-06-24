@@ -10,7 +10,8 @@ Introduction to Function calling and parsing with LLM's
 
 curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/sgoinfre/$(USER)/.local/bin sh
 
-export UV_CACHE_DIR=/sgoinfre/$(USER)/.cache/uv
-export PIP_CACHE_DIR=/sgoinfre/$(USER)/.cache/pip
+export HF_HOME="$PWD/.cache/huggingface"
+export UV_CACHE_DIR="$PWD/.cache/uv"
+export PIP_CACHE_DIR="$PWD/.cache/pip"
 
 ```
