@@ -1,7 +1,7 @@
 from src import select_from_trie, generate_number_value, generate_string_value
 
 
-def generate_function_call(model, prompt_text, function_definition, trie, vocab):
+def generate_function_call(model, prompt_text, functions, trie, vocab):
 
     input_ids = model.encode(prompt_text).tolist()[0]
     quote_token_id = model.encode('"').tolist()[0][0]
@@ -17,8 +17,18 @@ def generate_function_call(model, prompt_text, function_definition, trie, vocab)
     # --- skeleton: close name value, open parameters object ---
     input_ids.extend(model.encode('", "parameters": {').tolist()[0])
 
-    # look up this function's param dict (NOT generated, just a lookup)
-    params = function_definition.get("parameters")  # dict: {"a": {"type": "number"}, "b": {...}}
+    # find the function index on the json list
+    # find the function index on the json list
+    function_id = None
+    for i, function in enumerate(functions):
+        if function.get("name") == function_name:
+            function_id = i
+            break
+
+    if function_id is None:
+        raise ValueError(f"Model produced unknown function name: {function_name!r}")
+
+    params = functions[function_id].get("parameters")  # dict: {"a": {"type": "number"}, "b": {...}}
     param_items = list(params.items())
 
     for i, (param_name, param_info) in enumerate(param_items):

@@ -3,10 +3,18 @@ from llm_sdk import Small_LLM_Model
 from src import load_llm_vocab, generate_function_call, build_trie
 
 
+def render_functions_block(functions_data):
+    lines = ["Available functions:"]
+    for fn in functions_data:
+        params = fn.get("parameters", {})
+        param_str = ", ".join(f'{name}: {info.get("type")}' for name, info in params.items())
+        lines.append(f'- {fn["name"]}({param_str})')
+    return "\n".join(lines)
+
+
 def main(model: Small_LLM_Model, prompt: str, trie: dict, functions, vocab: dict[int, str]) -> None:
-    for function in functions:
-        print(generate_function_call(model=model, prompt_text=prompt,
-                                     function_definition=function, trie=trie, vocab=vocab))
+    print(generate_function_call(model=model, prompt_text=prompt,
+                                 functions=functions, trie=trie, vocab=vocab))
 
 
 if __name__ == "__main__":
@@ -32,8 +40,11 @@ if __name__ == "__main__":
 
     prompts = [prompt.get("prompt") for prompt in tests]
     
+    functions_block = render_functions_block(functions_data)
+
     for prompt in prompts:
-        main(model=model, prompt=prompt, trie=trie, functions=functions, vocab=vocab)
+        full_prompt = f"{functions_block}\n\nUser request: {prompt}\n"
+        main(model=model, prompt=full_prompt, trie=trie, functions=functions, vocab=vocab)
 
     """
     testing string value generation
