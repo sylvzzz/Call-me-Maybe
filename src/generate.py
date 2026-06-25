@@ -9,8 +9,8 @@ def generate_string_value(model, quote_token_id, input_ids_so_far, vocab: dict[i
     Asked the model for logits (its raw opinion on what token comes next, given everything written so far prompt + whatever's been generated in this loop already).
     Looked only at the scores for the "safe" tokens from step 1/2 (ignoring all other tokens' scores entirely).
     Picked whichever safe token scored highest i.e., what the model actually thinks is the best next character/word-piece, restricted to the safe set.
-    If that pick happened to be the quote token → stop, the value is finished.
-    Otherwise → remember that token as part of the answer, and loop again, now with one more token added to the context.
+    If that pick happened to be the quote token stop, the value is finished.
+    Otherwise remember that token as part of the answer, and loop again, now with one more token added to the context.
 
 
     Returned the list of tokens it built up which, when turned back into text, spelled shrek.

@@ -26,14 +26,14 @@ The full journey, simply
 
 The model repeats this loop, one token at a time, until it generates an EOS token (end of sentence — its way of saying "I'm done").
 
-What are logits?
+# What are logits?
 Just a list of scores, one per token in the vocabulary. If the vocab has 100,000 tokens, you get 100,000 scores. The highest score = the token the model thinks comes next.
 vocab size = 100,000 tokens
 logits     = [0.1, -2.3, 8.7, 0.02, ...] ← 100,000 numbers
                               ↑
                          this one wins → that's the next token
 
-What is constrained decoding?
+# What is constrained decoding?
 Normally the model can pick any token freely. But for function calling, you want the output to always be valid JSON — so you cheat.
 Before picking the next token, you look at the logits and set invalid tokens to -infinity so they can never be picked:
 You're generating JSON and just wrote: {"function_name": "

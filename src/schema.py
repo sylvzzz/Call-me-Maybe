@@ -43,11 +43,9 @@ def generate_function_call(model, prompt_text, functions, trie, vocab):
             input_ids.extend(value_tokens)
             raw_value = model.decode(value_tokens)
             parsed_params[param_name] = float(raw_value)
-            # generator stopped on , or } but didn't emit it — skeleton must
 
         elif param_info["type"] == "string":
             input_ids.extend(model.encode('"').tolist()[0])
-            # opening quote — generator doesn't add this either
             value_tokens = generate_string_value(model=model, input_ids_so_far=input_ids,
                                                  quote_token_id=quote_token_id, vocab=vocab)
             input_ids.extend(value_tokens)
