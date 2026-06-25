@@ -37,37 +37,46 @@ def generate_string_value(model, quote_token_id, input_ids_so_far, vocab: dict[i
 
     return generated_tokens
 
-def generate_number_value(model, input_ids_so_far, is_last_parameter):
+def generate_number_value(model, input_ids_so_far, is_last_parameter, prompt, vocab: dict[int, str]):
 
-    digit_ids = [model.encode(c).tolist()[0][0] for c in ["0","1","2","3","4","5","6","7","8","9"]]  # tokens for '0'-'9'
+    digit_ids = [model.encode(c).tolist()[0][0] for c in ["0","1","2","3","4","5","6","7","8","9"]]
     dot_id, comma_id, close_brace_id = [model.encode(c).tolist()[0][0] for c in [".",",","}"]]
 
-    generated_tokens =[]
+    generated_tokens = []
     used_dot = False
+    result_text = ""  # tracks decoded digits/dot so far for checks
 
     while True:
-        # build the allowed set for THIS step (can change each time!)
-        legal_ids = digit_ids[:]
-
+        structural_ids = digit_ids[:]
         if not used_dot:
-            legal_ids.append(dot_id)
+            structural_ids.append(dot_id)
 
-        # stop options only allow the one that's actually valid here
+        # keep only structural candidates that are actually grounded in the prompt
+        legal_ids = [
+            token_id for token_id in structural_ids
+            if (result_text + vocab[token_id]) in prompt
+        ]
+
         if is_last_parameter:
             legal_ids.append(close_brace_id)
         else:
             legal_ids.append(comma_id)
+
+        # NEW: nothing groundable left and no stop chosen yet -> bail out
+        if not legal_ids:
+            break
 
         logits = model.get_logits_from_input_ids(input_ids_so_far + generated_tokens)
 
         best_token = max(legal_ids, key=lambda token_id: logits[token_id])
 
         if best_token == comma_id or best_token == close_brace_id:
-            break   # model chose to stop, number is done
+            break
 
         if best_token == dot_id:
             used_dot = True
 
+        result_text += vocab[best_token]  # NEW
         generated_tokens.append(best_token)
 
     return generated_tokens

@@ -24,7 +24,7 @@ def valid_brackets(s: str) -> bool:
     return len(stack) == 0
 
 
-def render_functions_block(functions_data):
+def parse_available_functions(functions_data):
     lines = ["Available functions:"]
     for fn in functions_data:
         params = fn.get("parameters", {})
@@ -33,14 +33,8 @@ def render_functions_block(functions_data):
     return "\n".join(lines)
 
 
-def main(model: Small_LLM_Model, prompt: str, trie: dict, functions, vocab: dict[int, str]) -> None:
-    print(generate_function_call(model=model, prompt_text=prompt,
-                                 functions=functions, trie=trie, vocab=vocab))
-
-
-if __name__ == "__main__":
+def main(model: Small_LLM_Model) -> None:
     os.system("cls" if os.name == "nt" else "clear")
-    model = Small_LLM_Model()
     vocab_file = model.get_path_to_vocab_file()
     functions_file = "data/input/functions_definition.json"
     tests_file = "data/input/function_calling_tests.json"
@@ -61,7 +55,7 @@ if __name__ == "__main__":
 
     prompts = [prompt.get("prompt") for prompt in tests]
     
-    functions_block = render_functions_block(functions_data)
+    available_functions = parse_available_functions(functions_data)
 
     results = []
     validation_results = []
@@ -70,9 +64,9 @@ if __name__ == "__main__":
     print("============== Results ==============")
 
     for prompt in prompts:
-        full_prompt = f"{functions_block}\n\nUser request: {prompt}\n"
-        call_result = generate_function_call(model=model, prompt_text=full_prompt,
-                                            functions=functions, trie=trie, vocab=vocab)
+        full_prompt = f"{available_functions}\n\nUser request: {prompt}\n"
+        call_result, is_valid_output = generate_function_call(model=model, prompt_text=full_prompt,
+                                            functions=functions, trie=trie, vocab=vocab, user_prompt=prompt)
         function_call_result = {
             "prompt": prompt,
             "name": call_result["name"],
@@ -81,17 +75,16 @@ if __name__ == "__main__":
         results.append(function_call_result)
 
         json_validation = json.dumps(function_call_result)
-        is_valid = valid_brackets(json_validation)
+        is_valid_json = valid_brackets(json_validation)
 
-        if is_valid is not True:
+        if is_valid_output is not True or is_valid_json is not True:
             print("\033[31m"
-                f"Result for prompt: '{prompt}'"
+                f"PROMPT: '{prompt}'"
                 + " - [INVALID]\033[0m")
             validation_results.append(False)
-            print(json_validation)
         else:
             print("\033[92m"
-                  f"Result for prompt: '{prompt}'"
+                  f"PROMPT: '{prompt}'"
                   + " - [OK]\033[0m")
             validation_results.append(True)
         
@@ -106,10 +99,10 @@ if __name__ == "__main__":
         print("\033[92m" + f"[OK] - {success_rate}% valid JSON generated ready for function calling!" + "\033[0m")
     elif success_rate > 50 and success_rate < 90:
         print("\033[33m" + f"{tests_passed}/{len(validation_results)} tests passed!" + "\033[0m")
-        print("\033[33m" + f"{success_rate}% valid JSON generated!" + "\033[0m")
+        print("\033[33m" + f"{success_rate:.2f}% valid JSON generated!" + "\033[0m")
     else:
-        print("\033[33" + f"[KO] - {tests_passed}/{len(validation_results)} tests passed!" + "\033[0m")
-        print("\033[33" + f"[KO] - {success_rate}% valid JSON generated!" + "\033[0m")
+        print("\033[31m" + f"[KO] - {tests_passed}/{len(validation_results)} tests passed!" + "\033[0m")
+        print("\033[31m" + f"[KO] - {success_rate}% valid JSON generated!" + "\033[0m")
 
     dir_path = "data/output"
     output_file = "data/output/function_calls.json"
@@ -118,3 +111,8 @@ if __name__ == "__main__":
 
     with open(output_file, "w") as file:
         json.dump(results, file, indent=2)
+
+
+if __name__ == "__main__":
+    model = Small_LLM_Model()
+    main(model=model)

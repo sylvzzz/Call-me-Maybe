@@ -1,10 +1,11 @@
 from src import select_from_trie, generate_number_value, generate_string_value
 
 
-def generate_function_call(model, prompt_text, functions, trie, vocab):
+def generate_function_call(model, prompt_text, functions, trie, vocab, user_prompt) -> tuple[dict, bool]:
 
     input_ids = model.encode(prompt_text).tolist()[0]
     quote_token_id = model.encode('"').tolist()[0][0]
+    valid_result = True
 
     # --- skeleton: open object, open name key ---
     input_ids.extend(model.encode('{"name": "').tolist()[0])
@@ -34,15 +35,21 @@ def generate_function_call(model, prompt_text, functions, trie, vocab):
     parsed_params = {}
     for i, (param_name, param_info) in enumerate(param_items):
         is_last = (i == len(param_items) - 1)
+        # print(f"param={param_name} type={param_info['type']!r}")
 
         # --- skeleton: this param's key + colon ---
         input_ids.extend(model.encode(f'"{param_name}": ').tolist()[0])
 
         if param_info["type"] == "number":
-            value_tokens = generate_number_value(model, input_ids, is_last)
+            value_tokens = generate_number_value(model, input_ids, is_last, user_prompt, vocab)
             input_ids.extend(value_tokens)
             raw_value = model.decode(value_tokens)
-            parsed_params[param_name] = float(raw_value)
+            try:
+                parsed_params[param_name] = float(raw_value)
+            except ValueError:
+                print("\033[33m" + f"Warning: a numeric value for '{param_name}' could not be resolved" + "\033[0m")
+                parsed_params[param_name] = 0.0
+                valid_result = False
 
         elif param_info["type"] == "string":
             input_ids.extend(model.encode('"').tolist()[0])
@@ -61,4 +68,4 @@ def generate_function_call(model, prompt_text, functions, trie, vocab):
     return {
         "name": function_name,
         "parameters": parsed_params,
-    }
+    }, valid_result
