@@ -1,23 +1,23 @@
 [
     {
-    "prompt": "What is the sum of hello and world?"
+        "prompt": "What is the sum of helllo and world?"
     },
     {
-    "prompt": "What is the sum of 265 and 345?"
+        "prompt": "What is the sum of 265 and 345?"
     },
     {
-    "prompt": "Greet shrek"
+        "prompt": "Greet shrek"
     },
     {
-    "prompt": "Greet john"
+        "prompt": "Greet john"
     },
     {
-    "prompt": "Reverse the string 'hello'"
+        "prompt": "Reverse the string 'hello'"
     },
     {
-    "prompt": "Tell denys he is a vibecoder"
+        "prompt": "Tell denys he is a vibecoder"
     },
     {
-    "prompt": "Whats the result of adding 21943.55 and 10237.41"
+        "prompt": "Whats the result of adding 21943.55 and 10237.41"
     }
 ]

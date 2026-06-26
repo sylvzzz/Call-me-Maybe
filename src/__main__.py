@@ -2,7 +2,8 @@ import json
 from llm_sdk import Small_LLM_Model
 from src import load_llm_vocab, generate_function_call, build_trie
 import os
-
+import argparse
+import sys
 
 def valid_brackets(s: str) -> bool:
     stack = []
@@ -33,11 +34,17 @@ def parse_available_functions(functions_data):
     return "\n".join(lines)
 
 
-def main(model: Small_LLM_Model) -> None:
+def main(model: Small_LLM_Model, functions_file: str,
+         tests_file: str, output_file: str) -> None:
+
     os.system("cls" if os.name == "nt" else "clear")
+
     vocab_file = model.get_path_to_vocab_file()
-    functions_file = "data/input/functions_definition.json"
-    tests_file = "data/input/function_calling_tests.json"
+
+    if "data/input/" in output_file:
+        dir_path = "data/input"
+
+        os.makedirs(dir_path, exist_ok=True)
 
     with open(functions_file, "r") as file:
         functions_data = json.load(file)
@@ -49,12 +56,18 @@ def main(model: Small_LLM_Model) -> None:
         tests = json.load(file)
 
     functions = [function for function in functions_data]
+    if len(functions) == 0:
+        print("\033[31m" + f"No functions provided, check {functions_file}" + "\033[0m")
+        return
     functions_names = [f.get("name") for f in functions_data]
     trie = build_trie(model=model, values=functions_names)
     vocab = load_llm_vocab(vocab)
 
     prompts = [prompt.get("prompt") for prompt in tests]
-    
+    if len(prompts) == 0:
+        print("\033[31m" + f"No test prompts provided, check {tests_file}" + "\033[0m")
+        return
+
     available_functions = parse_available_functions(functions_data)
 
     results = []
@@ -79,7 +92,7 @@ def main(model: Small_LLM_Model) -> None:
 
         if is_valid_output is not True or is_valid_json is not True:
             print("\033[31m"
-                f"PROMPT: '{prompt}'"
+                f"PROMPT: {prompt}"
                 + " - [INVALID]\033[0m")
             validation_results.append(False)
         else:
@@ -104,15 +117,58 @@ def main(model: Small_LLM_Model) -> None:
         print("\033[31m" + f"[KO] - {tests_passed}/{len(validation_results)} tests passed!" + "\033[0m")
         print("\033[31m" + f"[KO] - {success_rate}% valid JSON generated!" + "\033[0m")
 
-    dir_path = "data/output"
-    output_file = "data/output/function_calls.json"
+    if "data/output/" in output_file:
+        dir_path = "data/output"
 
-    os.makedirs(dir_path, exist_ok=True)
+        os.makedirs(dir_path, exist_ok=True)
+
+    print()
+    print("=========== Saving Results ==========")
+    print()
+    print(f"Writing results to {output_file} ...")
 
     with open(output_file, "w") as file:
         json.dump(results, file, indent=2)
 
 
 if __name__ == "__main__":
-    model = Small_LLM_Model()
-    main(model=model)
+    try:
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--functions_definition')
+        parser.add_argument('--input')
+        parser.add_argument('--output')
+
+        args = parser.parse_args()
+
+        functions_file = args.functions_definition or "data/input/functions_definition.json"
+        tests_file = args.input or "data/input/function_calling_tests.json"
+        output_file = args.output or "data/output/function_calls.json"
+
+        if functions_file == tests_file:
+            print("Functions definition and tests file cannot be the same file")
+            sys.exit(1)
+
+        if functions_file == output_file:
+            print("Functions definition and output file cannot be the same file")
+            sys.exit(1)
+        
+        if output_file == tests_file:
+            print("Output file and tests file cannot be the same file")
+            sys.exit(1)
+
+        model = Small_LLM_Model()
+
+        main(model=model, functions_file=functions_file,
+            tests_file=tests_file, output_file=output_file)
+    except FileNotFoundError as error:
+        print()
+        print("\033[31m" + f"File {error.filename} not found" + "\033[0m")
+    except IsADirectoryError as error:
+        print()
+        print("\033[31m" + f"Argument file {error.filename} cannot be a directory"
+              + "\033[0m")
+    finally:
+        print()
+        print("\033[92m" + f"Results successfully saved in  {output_file}!"
+              + "\033[0m")
+

@@ -19,7 +19,6 @@ def generate_function_call(model, prompt_text, functions, trie, vocab, user_prom
     input_ids.extend(model.encode('", "parameters": {').tolist()[0])
 
     # find the function index on the json list
-    # find the function index on the json list
     function_id = None
     for i, function in enumerate(functions):
         if function.get("name") == function_name:

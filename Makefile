@@ -7,7 +7,6 @@ PY = $(VENV)/bin/python
 install:
 	uv venv $(VENV)
 	uv pip install -r $(REQ) --python $(PY)
-	unzip llm_sdk.zip
 	uv pip install ./llm_sdk --python $(PY)
 
 run:
