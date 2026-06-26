@@ -1,12 +1,16 @@
 def is_allowed_char(c: str) -> bool:
+    # ord converts char to ascii/unicode, return true if the char is allowed
     return ord(c) < 128 or c == 'Ġ' or c == 'Ċ'
 
 
 def is_allowed_token(s: str) -> bool:
+    # a iterator that returns true if all chars all allowed
     return all(is_allowed_char(char) for char in s)
 
 
 def polish_token(token: str) -> str:
+    # this llm uses these two as spaces and newline
+    # it doesnt use native space and newline
     return token.replace("Ġ", "").replace("Ċ", "")
 
 

@@ -47,7 +47,7 @@ def generate_number_value(model, input_ids_so_far, is_last_parameter, prompt, vo
     result_text = ""  # tracks decoded digits/dot so far for checks
 
     while True:
-        structural_ids = digit_ids[:]
+        structural_ids = digit_ids[:] # copy values
         if not used_dot:
             structural_ids.append(dot_id)
 
@@ -62,7 +62,7 @@ def generate_number_value(model, input_ids_so_far, is_last_parameter, prompt, vo
         else:
             legal_ids.append(comma_id)
 
-        # NEW: nothing groundable left and no stop chosen yet -> bail out
+        # nothing left and no stop chosen yet
         if not legal_ids:
             break
 
@@ -76,7 +76,7 @@ def generate_number_value(model, input_ids_so_far, is_last_parameter, prompt, vo
         if best_token == dot_id:
             used_dot = True
 
-        result_text += vocab[best_token]  # NEW
+        result_text += vocab[best_token]
         generated_tokens.append(best_token)
 
     return generated_tokens

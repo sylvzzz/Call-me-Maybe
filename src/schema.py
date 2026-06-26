@@ -7,15 +7,15 @@ def generate_function_call(model, prompt_text, functions, trie, vocab, user_prom
     quote_token_id = model.encode('"').tolist()[0][0]
     valid_result = True
 
-    # --- skeleton: open object, open name key ---
+    # open object, open name key
     input_ids.extend(model.encode('{"name": "').tolist()[0])
 
-    # --- decision: which function ---
+    # decision: which function
     name_tokens = select_from_trie(model=model, trie=trie, quote_token_id=quote_token_id, input_ids=input_ids)
     input_ids.extend(name_tokens)
     function_name = model.decode(name_tokens)
 
-    # --- skeleton: close name value, open parameters object ---
+    # close name value, open parameters object
     input_ids.extend(model.encode('", "parameters": {').tolist()[0])
 
     # find the function index on the json list
@@ -34,9 +34,8 @@ def generate_function_call(model, prompt_text, functions, trie, vocab, user_prom
     parsed_params = {}
     for i, (param_name, param_info) in enumerate(param_items):
         is_last = (i == len(param_items) - 1)
-        # print(f"param={param_name} type={param_info['type']!r}")
 
-        # --- skeleton: this param's key + colon ---
+        # this param's key + colon
         input_ids.extend(model.encode(f'"{param_name}": ').tolist()[0])
 
         if param_info["type"] == "number":
@@ -58,7 +57,7 @@ def generate_function_call(model, prompt_text, functions, trie, vocab, user_prom
             input_ids.append(quote_token_id)   # closing quote, since generator only stopped ON it
             parsed_params[param_name] = model.decode(value_tokens)
 
-        # --- skeleton: separator between params, or close everything ---
+        # separator between params or close everything
         if not is_last:
             input_ids.extend(model.encode(", ").tolist()[0])
         else:
