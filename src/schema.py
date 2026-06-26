@@ -46,7 +46,7 @@ def generate_function_call(model, prompt_text, functions, trie, vocab, user_prom
             try:
                 parsed_params[param_name] = float(raw_value)
             except ValueError:
-                print("\033[33m" + f"Warning: a numeric value for '{param_name}' could not be resolved" + "\033[0m")
+                print("\033[33m" + f"Warning: a numeric value for parameter '{param_name}' could not be resolved..." + "\033[0m")
                 parsed_params[param_name] = 0.0
                 valid_result = False
 

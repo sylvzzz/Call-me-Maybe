@@ -1,7 +1,7 @@
-import json
 from llm_sdk import Small_LLM_Model
 from src import load_llm_vocab, generate_function_call, build_trie
 import os
+import json
 import argparse
 import sys
 
@@ -33,6 +33,23 @@ def parse_available_functions(functions_data):
         lines.append(f'- {fn["name"]}({param_str})')
     return "\n".join(lines)
 
+
+def show_final_results(success_rate: int, total_tests: int,
+                       tests_passed: int, invalid_prompts_handled: int) -> None:
+    print()
+    print("=========== Tests Results ===========")
+
+    if success_rate >= 90:
+        print("\033[92m" + f"[OK] - {tests_passed}/{total_tests} tests passed!" + "\033[0m")
+        print("\033[92m" + f"[OK] - {success_rate:.2f}% valid JSON generated ready for function calling!" + "\033[0m")
+    elif success_rate > 50 and success_rate < 90:
+        print("\033[33m" + f"{tests_passed}/{total_tests} tests passed!" + "\033[0m")
+        print("\033[33m" + f"{success_rate:.2f}% valid JSON generated!" + "\033[0m")
+    else:
+        print("\033[31m" + f"[KO] - {tests_passed}/{total_tests} tests passed!" + "\033[0m")
+        print("\033[31m" + f"[KO] - {success_rate:.2f}% valid JSON generated!" + "\033[0m")
+
+    print("\033[92m" + f"[OK] - {invalid_prompts_handled} invalid prompts handled!" + "\033[0m")
 
 def main(model: Small_LLM_Model, functions_file: str,
          tests_file: str, output_file: str) -> None:
@@ -80,42 +97,42 @@ def main(model: Small_LLM_Model, functions_file: str,
         full_prompt = f"{available_functions}\n\nUser request: {prompt}\n"
         call_result, is_valid_output = generate_function_call(model=model, prompt_text=full_prompt,
                                             functions=functions, trie=trie, vocab=vocab, user_prompt=prompt)
+        
         function_call_result = {
             "prompt": prompt,
             "name": call_result["name"],
             "parameters": call_result["parameters"],
         }
-        results.append(function_call_result)
 
         json_validation = json.dumps(function_call_result)
         is_valid_json = valid_brackets(json_validation)
+        invalid_json_generated = 0
 
-        if is_valid_output is not True or is_valid_json is not True:
+        if is_valid_json is not True:
             print("\033[31m"
                 f"PROMPT: {prompt}"
                 + " - [INVALID]\033[0m")
+            invalid_json_generated += 1
+        elif is_valid_output is not True:
+            print("\033[33m"
+                f"PROMPT: {prompt}"
+                + " - [DISCARTED]\033[0m")
             validation_results.append(False)
         else:
             print("\033[92m"
                   f"PROMPT: '{prompt}'"
                   + " - [OK]\033[0m")
             validation_results.append(True)
+            results.append(function_call_result)
         
     tests_passed = sum(1 for res in validation_results if res is True)
+    invalid_prompts_handled = sum(1 for res in validation_results if res is not True)
+    handled_tests = invalid_prompts_handled + tests_passed
+    total_tests = handled_tests + invalid_json_generated
+    success_rate = ((handled_tests) / total_tests) * 100
 
-    success_rate = tests_passed / len(validation_results) * 100
-
-    print()
-    print("=========== Tests Results ===========")
-    if success_rate >= 90:
-        print("\033[92m" + f"[OK] - {tests_passed}/{len(validation_results)} tests passed!" + "\033[0m")
-        print("\033[92m" + f"[OK] - {success_rate}% valid JSON generated ready for function calling!" + "\033[0m")
-    elif success_rate > 50 and success_rate < 90:
-        print("\033[33m" + f"{tests_passed}/{len(validation_results)} tests passed!" + "\033[0m")
-        print("\033[33m" + f"{success_rate:.2f}% valid JSON generated!" + "\033[0m")
-    else:
-        print("\033[31m" + f"[KO] - {tests_passed}/{len(validation_results)} tests passed!" + "\033[0m")
-        print("\033[31m" + f"[KO] - {success_rate}% valid JSON generated!" + "\033[0m")
+    show_final_results(success_rate=success_rate, total_tests=total_tests,
+                       tests_passed=handled_tests, invalid_prompts_handled=invalid_prompts_handled)
 
     if "data/output/" in output_file:
         dir_path = "data/output"
@@ -169,6 +186,9 @@ if __name__ == "__main__":
               + "\033[0m")
     finally:
         print()
-        print("\033[92m" + f"Results successfully saved in  {output_file}!"
+        print("\033[92m" + f"Results successfully saved in {output_file}!"
               + "\033[0m")
+        print()
+        print("Made by dbotelho at 42 Lisbon.")
+        print()
 
