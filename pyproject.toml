@@ -4,8 +4,8 @@ version = "0.1.0"
 description = "Introduction to function calling in llm with constrained decoding"
 requires-python = ">=3.10"
 dependencies = [
-    "numpy",
-    "pydantic",
+    "flake8",
+    "mypy",
     "llm-sdk",
 ]
 
