@@ -1,9 +1,12 @@
-from src import select_from_trie, generate_number_value, generate_string_value
-from llm_sdk import Small_LLM_Model
+from src import generate_number_value, generate_string_value
+from src import select_from_trie, TrieNode
+from llm_sdk import Small_LLM_Model  # type: ignore
 
 
-def generate_function_call(model: Small_LLM_Model, prompt_text, functions,
-                           trie, vocab, user_prompt) -> tuple[dict, bool]:
+def generate_function_call(model: Small_LLM_Model, prompt_text: str,
+                           functions: list,
+                           trie: TrieNode, vocab: dict[int, str],
+                           user_prompt: str) -> tuple[dict, bool]:
 
     input_ids = model.encode(prompt_text).tolist()[0]
     quote_token_id = model.encode('"').tolist()[0][0]

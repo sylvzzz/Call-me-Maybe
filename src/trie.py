@@ -1,4 +1,11 @@
-def build_trie(model, values: list[str]) -> dict:
+from llm_sdk import Small_LLM_Model  # type: ignore
+from typing import Union, cast
+
+
+TrieNode = dict[Union[int, str], Union[bool, "TrieNode"]]
+
+
+def build_trie(model: Small_LLM_Model, values: list[str]) -> TrieNode:
     """
     Builds a prefix tree (trie) from a list of strings.
     Each level in the tree is a token ID.
@@ -22,17 +29,19 @@ def build_trie(model, values: list[str]) -> dict:
     When you hit "END", the value is complete.
     """
 
-    trie = {}
+    trie: TrieNode = {}
     for val in values:
         # Encode the string into token IDs
         tokens = model.encode(val).tolist()[0]
 
         # Walk through the trie, creating nodes as needed
-        current = trie
+        current: TrieNode = trie
         for token in tokens:
-            if token not in current:
-                current[token] = {}
-            current = current[token]
+            node = current.get(token)
+            if not isinstance(node, dict):
+                node = {}
+                current[token] = node
+            current = cast(TrieNode, node)
 
         # Mark this path as a complete valid value
         current["END"] = True
@@ -40,7 +49,7 @@ def build_trie(model, values: list[str]) -> dict:
     return trie
 
 
-def select_from_trie(model, trie: dict, quote_token_id: int,
+def select_from_trie(model: Small_LLM_Model, trie: dict, quote_token_id: int,
                      input_ids: list[int]) -> list[int]:
     """Walk the trie, masking logits at each step, until the quote token wins.
 

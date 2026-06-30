@@ -1,4 +1,4 @@
-from llm_sdk import Small_LLM_Model
+from llm_sdk import Small_LLM_Model  # type: ignore
 from src import load_llm_vocab, generate_function_call, build_trie
 import os
 import json
@@ -26,7 +26,7 @@ def valid_brackets(s: str) -> bool:
     return len(stack) == 0
 
 
-def parse_available_functions(functions_data):
+def parse_available_functions(functions_data: list[dict]) -> str:
     """Returns all the functions that the llm can use and infuse
     it into the starting prompt"""
     lines = ["Available functions:"]
@@ -39,7 +39,7 @@ def parse_available_functions(functions_data):
     return "\n".join(lines)
 
 
-def show_final_results(success_rate: int, total_tests: int,
+def show_final_results(success_rate: float, total_tests: int,
                        tests_passed: int,
                        invalid_prompts_handled: int) -> None:
 

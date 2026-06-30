@@ -1,5 +1,9 @@
-def generate_string_value(model, quote_token_id,
-                          input_ids_so_far, vocab: dict[int, str]):
+from llm_sdk import Small_LLM_Model  # type: ignore
+
+
+def generate_string_value(model: Small_LLM_Model, quote_token_id: int,
+                          input_ids_so_far: list[int],
+                          vocab: dict[int, str]) -> list[int]:
     # Build the "safe" list once this never changes during the loop,
     # so no point recomputing it every step.
 
@@ -40,7 +44,7 @@ def generate_string_value(model, quote_token_id,
 
     legal_ids.append(quote_token_id)
 
-    generated_tokens = []
+    generated_tokens: list[int] = []
 
     while True:
         logits = model.get_logits_from_input_ids(input_ids_so_far
@@ -56,8 +60,9 @@ def generate_string_value(model, quote_token_id,
     return generated_tokens
 
 
-def generate_number_value(model, input_ids_so_far,
-                          is_last_parameter, prompt, vocab: dict[int, str]):
+def generate_number_value(model: Small_LLM_Model, input_ids_so_far: list[int],
+                          is_last_parameter: bool, prompt: str,
+                          vocab: dict[int, str]) -> list[int]:
 
     digit_ids = [model.encode(c).tolist()[0][0]
                  for c in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]]
@@ -65,7 +70,7 @@ def generate_number_value(model, input_ids_so_far,
     dot_id, comma_id, close_brace_id = [model.encode(c).tolist()[0][0]
                                         for c in [".", ",", "}"]]
 
-    generated_tokens = []
+    generated_tokens: list[int] = []
     used_dot = False
     result_text = ""  # tracks decoded digits/dot so far for checks
 

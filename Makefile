@@ -28,7 +28,7 @@ lint:
 
 lint-strict:
 	python3 -m flake8 . --exclude=.venv,llm_sdk
-	python3 -m mypy . --strict --exclude .venv llm_sdk
+	python3 -m mypy . --strict
 
 
 .PHONY: build install run debug clean lint lint-strict test-all
