@@ -5,9 +5,7 @@ REQ = requirements.txt
 PY = $(VENV)/bin/python
 
 install:
-	uv venv $(VENV)
-	uv pip install -r $(REQ) --python $(PY)
-	uv pip install ./llm_sdk --python $(PY)
+	uv sync
 
 run:
 	uv run $(PY) -m src

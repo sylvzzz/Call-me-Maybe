@@ -68,7 +68,7 @@ def generate_function_call(model: Small_LLM_Model, prompt_text: str,
                 valid_result = False
 
         elif param_info["type"] == "string":
-            input_ids.extend(model.encode('"').tolist()[0])
+            input_ids.extend(quote_token_id)
             value_tokens = generate_string_value(model=model,
                                                  input_ids_so_far=input_ids,
                                                  quote_token_id=quote_token_id,

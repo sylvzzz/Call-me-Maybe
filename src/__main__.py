@@ -212,24 +212,19 @@ def main(model: Small_LLM_Model, functions_file: str,
 
 if __name__ == "__main__":
     try:
-
-        # python lib for easy arg parsing
         parser = argparse.ArgumentParser()
-        parser.add_argument('--functions_definition')
-        parser.add_argument('--input')
-        parser.add_argument('--output')
+        parser.add_argument('--functions_definition', default="data/input/functions_definition.json")
+        parser.add_argument('--input', default="data/input/function_calling_tests.json")
+        parser.add_argument('--output', "data/output/function_calls.json")
+        parser.add_argument("--model", default="Qwen/Qwen3-0.6B")
 
         # convert args to a object
         args = parser.parse_args()
 
-        default_fn = "data/input/functions_definition.json"
-        default_tests = "data/input/function_calling_tests.json"
-        default_output = "data/output/function_calls.json"
-
         # if not defined use default
-        functions_file = args.functions_definition or default_fn
-        tests_file = args.input or default_tests
-        output_file = args.output or default_output
+        functions_file = args.functions_definition
+        tests_file = args.input
+        output_file = args.output
 
         if functions_file == tests_file:
             print("Functions definition and input file cannot be the same.")
@@ -243,7 +238,7 @@ if __name__ == "__main__":
             print("Output file and tests file cannot be the same file")
             sys.exit(1)
 
-        model = Small_LLM_Model()
+        model = Small_LLM_Model(args.model)
 
         main(model=model, functions_file=functions_file,
              tests_file=tests_file, output_file=output_file)
