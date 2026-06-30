@@ -16,7 +16,7 @@ def build_trie(model, values: list[str]) -> dict:
             |       |
         [32964]   [3744]
         _numbers   reet
-    
+
     Usage: at each generation step, traverse the trie.
     Valid tokens are the keys of the current node.
     When you hit "END", the value is complete.
@@ -40,7 +40,8 @@ def build_trie(model, values: list[str]) -> dict:
     return trie
 
 
-def select_from_trie(model, trie: dict, quote_token_id: int, input_ids: list[int]) -> list[int]:
+def select_from_trie(model, trie: dict, quote_token_id: int,
+                     input_ids: list[int]) -> list[int]:
     """Walk the trie, masking logits at each step, until the quote token wins.
 
     Args:

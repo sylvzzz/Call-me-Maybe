@@ -5,6 +5,7 @@ import json
 import argparse
 import sys
 
+
 def valid_brackets(s: str) -> bool:
     stack = []
     pairs = {
@@ -26,39 +27,51 @@ def valid_brackets(s: str) -> bool:
 
 
 def parse_available_functions(functions_data):
-    """Returns all the functions that the llm can use and infuse it into the starting prompt"""
+    """Returns all the functions that the llm can use and infuse
+    it into the starting prompt"""
     lines = ["Available functions:"]
     for fn in functions_data:
         params = fn.get("parameters", {})
-        param_str = ", ".join(f'{name}: {info.get("type")}' for name, info in params.items())
+        param_str = ", ".join(f'{name}: {info.get("type")}'
+                              for name, info in params.items())
+
         lines.append(f'- {fn["name"]}({param_str})')
     return "\n".join(lines)
 
 
 def show_final_results(success_rate: int, total_tests: int,
-                       tests_passed: int, invalid_prompts_handled: int) -> None:
+                       tests_passed: int,
+                       invalid_prompts_handled: int) -> None:
+
     """Final report on the prompts tests"""
     print()
     print("=========== Tests Results ===========")
 
     if success_rate >= 90:
-        print("\033[92m" + f"[OK] - {tests_passed}/{total_tests} tests passed!" + "\033[0m")
-        print("\033[92m" + f"[OK] - {success_rate:.2f}% valid JSON generated ready for function calling!" + "\033[0m")
-    elif success_rate > 50 and success_rate < 90:
-        print("\033[33m" + f"{tests_passed}/{total_tests} tests passed!" + "\033[0m")
-        print("\033[33m" + f"{success_rate:.2f}% valid JSON generated!" + "\033[0m")
-    else:
-        print("\033[31m" + f"[KO] - {tests_passed}/{total_tests} tests passed!" + "\033[0m")
-        print("\033[31m" + f"[KO] - {success_rate:.2f}% valid JSON generated!" + "\033[0m")
+        print("\033[92m" + f"[OK] - {tests_passed}/"
+              f"{total_tests} tests passed!")
+        print(f"[OK] - {success_rate:.2f}% valid JSON generated"
+              "ready for function calling!" + "\033[0m")
 
-    print("\033[92m" + f"[OK] - {invalid_prompts_handled} invalid prompts handled!" + "\033[0m")
+    elif success_rate > 50 and success_rate < 90:
+        print("\033[33m" + f"{tests_passed}/{total_tests} tests passed!")
+        print(f"{success_rate:.2f}% valid JSON generated!" + "\033[0m")
+
+    else:
+        print("\033[31m" + f"[KO] - {tests_passed}/"
+              "{total_tests} tests passed!")
+        print(f"[KO] - {success_rate:.2f}% valid JSON generated!" + "\033[0m")
+
+    print("\033[92m" + f"[OK] - {invalid_prompts_handled}"
+          " invalid prompts handled!" + "\033[0m")
+
 
 def main(model: Small_LLM_Model, functions_file: str,
          tests_file: str, output_file: str) -> None:
     """
     Main function where we build the whole pipeline for the core of the project
-    
-    Here we load the functions, prompt tests and save the results in the output file
+
+    Loads the functions, prompt tests and save the results in the output file
 
     At last we provide a small report of the results
     """
@@ -78,11 +91,11 @@ def main(model: Small_LLM_Model, functions_file: str,
     # read and load function data as json (python dict)
     with open(functions_file, "r") as file:
         functions_data = json.load(file)
-    
+
     # read and vocab as json (python dict)
     with open(vocab_file) as file:
         vocab = json.load(file)
-    
+
     # read and load test prompts as json (python dict)
     with open(tests_file) as file:
         tests = json.load(file)
@@ -90,7 +103,9 @@ def main(model: Small_LLM_Model, functions_file: str,
     # list of functions
     functions = [function for function in functions_data]
     if len(functions) == 0:
-        print("\033[31m" + f"No functions provided, check {functions_file}" + "\033[0m")
+        print("\033[31m" +
+              f"No functions provided, check {functions_file}" +
+              "\033[0m")
         return
 
     # getting function names to build a prefix trie so the model easily choses
@@ -100,7 +115,9 @@ def main(model: Small_LLM_Model, functions_file: str,
 
     prompts = [prompt.get("prompt") for prompt in tests]
     if len(prompts) == 0:
-        print("\033[31m" + f"No test prompts provided, check {tests_file}" + "\033[0m")
+        print("\033[31m" +
+              f"No test prompts provided, check {tests_file}" +
+              "\033[0m")
         return
 
     available_functions = parse_available_functions(functions_data)
@@ -114,9 +131,16 @@ def main(model: Small_LLM_Model, functions_file: str,
     # test our project for every user prompt
     for prompt in prompts:
         full_prompt = f"{available_functions}\n\nUser request: {prompt}\n"
-        call_result, is_valid_output = generate_function_call(model=model, prompt_text=full_prompt,
-                                            functions=functions, trie=trie, vocab=vocab, user_prompt=prompt)
-        
+        data = generate_function_call(model=model,
+                                      prompt_text=full_prompt,
+                                      functions=functions,
+                                      trie=trie,
+                                      vocab=vocab,
+                                      user_prompt=prompt)
+
+        call_result = data[0]
+        is_valid_output = data[1]
+
         function_call_result = {
             "prompt": prompt,
             "name": call_result["name"],
@@ -130,16 +154,16 @@ def main(model: Small_LLM_Model, functions_file: str,
 
         # not valid json (CRITICAL)
         if is_valid_json is not True:
-            print("\033[31m"
-                f"PROMPT: {prompt}"
-                + " - [INVALID]\033[0m")
+            print("\033[31m" +
+                  f"PROMPT: {prompt}"
+                  + " - [INVALID]\033[0m")
             invalid_json_generated += 1
-        
+
         # not valid output (asking a sum between strings) (Discarted)
         elif is_valid_output is not True:
-            print("\033[33m"
-                f"PROMPT: {prompt}"
-                + " - [DISCARTED]\033[0m")
+            print("\033[33m" +
+                  f"PROMPT: {prompt}" +
+                  " - [DISCARTED]\033[0m")
             validation_results.append(False)
 
         # saving ok json
@@ -149,12 +173,13 @@ def main(model: Small_LLM_Model, functions_file: str,
                   + " - [OK]\033[0m")
             validation_results.append(True)
             results.append(function_call_result)
-    
+
     # fully ok jsons
     tests_passed = sum(1 for res in validation_results if res is True)
 
     # discarted jsons
-    invalid_prompts_handled = sum(1 for res in validation_results if res is not True)
+    invalid_prompts_handled = sum(1 for res in validation_results
+                                  if res is not True)
 
     # discarted + ok json's
     handled_tests = invalid_prompts_handled + tests_passed
@@ -164,8 +189,10 @@ def main(model: Small_LLM_Model, functions_file: str,
     success_rate = ((handled_tests) / total_tests) * 100
 
     # printing final report
-    show_final_results(success_rate=success_rate, total_tests=total_tests,
-                       tests_passed=handled_tests, invalid_prompts_handled=invalid_prompts_handled)
+    show_final_results(success_rate=success_rate,
+                       total_tests=total_tests,
+                       tests_passed=handled_tests,
+                       invalid_prompts_handled=invalid_prompts_handled)
 
     # creating output dir if doesnt exist
     if "data/output/" in output_file:
@@ -195,19 +222,23 @@ if __name__ == "__main__":
         # convert args to a object
         args = parser.parse_args()
 
+        default_fn = "data/input/functions_definition.json"
+        default_tests = "data/input/function_calling_tests.json"
+        default_output = "data/output/function_calls.json"
+
         # if not defined use default
-        functions_file = args.functions_definition or "data/input/functions_definition.json"
-        tests_file = args.input or "data/input/function_calling_tests.json"
-        output_file = args.output or "data/output/function_calls.json"
+        functions_file = args.functions_definition or default_fn
+        tests_file = args.input or default_tests
+        output_file = args.output or default_output
 
         if functions_file == tests_file:
-            print("Functions definition and tests file cannot be the same file")
+            print("Functions definition and input file cannot be the same.")
             sys.exit(1)
 
         if functions_file == output_file:
-            print("Functions definition and output file cannot be the same file")
+            print("Functions definition and output file cannot be the same.")
             sys.exit(1)
-        
+
         if output_file == tests_file:
             print("Output file and tests file cannot be the same file")
             sys.exit(1)
@@ -215,14 +246,15 @@ if __name__ == "__main__":
         model = Small_LLM_Model()
 
         main(model=model, functions_file=functions_file,
-            tests_file=tests_file, output_file=output_file)
+             tests_file=tests_file, output_file=output_file)
     except FileNotFoundError as error:
         print()
         print("\033[31m" + f"File {error.filename} not found" + "\033[0m")
     except IsADirectoryError as error:
         print()
-        print("\033[31m" + f"Argument file {error.filename} cannot be a directory"
-              + "\033[0m")
+        print("\033[31m" +
+              f"Argument file {error.filename} cannot be a directory" +
+              "\033[0m")
     finally:
         print()
         print("\033[92m" + f"Results successfully saved in {output_file}!"
@@ -230,4 +262,3 @@ if __name__ == "__main__":
         print()
         print("Made by dbotelho at 42 Lisbon.")
         print()
-

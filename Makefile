@@ -23,12 +23,12 @@ clean:
 	find . -type d -name ".cache" -exec rm -rf {} +
 
 lint:
-	python3 -m flake8 . --exclude virtual_env
+	python3 -m flake8 . --exclude=.venv,llm_sdk
 	python3 -m mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
-	python3 -m flake8 . --exclude virtual_env
-	python3 -m mypy . --strict --exclude virtual_env
+	python3 -m flake8 . --exclude=.venv,llm_sdk
+	python3 -m mypy . --strict --exclude .venv llm_sdk
 
 
 .PHONY: build install run debug clean lint lint-strict test-all
